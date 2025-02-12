@@ -302,7 +302,7 @@ button {
   background: linear-gradient(180deg,
               hsl(0, 0%, 16%) 93%,
               hsl(0, 0%, 67%) 100%);
-  border-radius: 12px 12px 0 0;
+  border-radius: 16px 16px 0 0;
 }
 
 .home__img{
