@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Typing Game - CS & Code</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap');
+
+:root {
+  --bg-dark:#1e1e1e;
+  --bg-light:#d3d3d3;
+  --text-dark:#fff;
+  --text-light:#111;
+  --green:#a6ff00;
+  --red:#ff4d4d;
+  --highlight:#ff00ff;
+  --container-dark:rgba(255,255,255,0.05);
+  --container-light:rgba(0,0,0,0.05);
+  --editor-bg:#2d2d2d;
+  --editor-text:#fff;
+}
+
+/* Light mode overrides */
+body.light-mode {
+  background: var(--bg-light);
+  color: var(--text-light);
+  --green: #081bb3;  /* correct letter color in light mode */
+  --red: #b20202;    /* wrong letter color in light mode */
+}
+
+body{margin:0;font-family:'DM Sans',sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;background:var(--bg-dark);color:var(--text-dark);transition:0.5s;}
+
+.game-container{width:90vw;max-width:700px;padding:30px;background:var(--container-dark);border-radius:20px;backdrop-filter:blur(10px);display:flex;flex-direction:column;align-items:center;transition:0.5s;}
+body.light-mode .game-container{background:var(--container-light);}
+
+h1{margin-bottom:20px;font-weight:500;display:flex;align-items:center;gap:10px;}
+h1 i{color:var(--green);}
+
+.stats{display:flex;gap:30px;margin-bottom:15px;font-size:1.2rem;align-items:center;}
+
+.sentence-box,#inputBox{font-size:1.5rem;padding:15px 20px;border-radius:12px;width:100%;box-sizing:border-box;text-align:left;margin-bottom:20px;font-family:'DM Sans',sans-serif;resize:none;overflow:hidden;white-space:pre-wrap;word-wrap:break-word;transition:0.3s;}
+.sentence-box{min-height:80px;background:rgba(255,255,255,0.05);color:var(--text-dark);}
+#inputBox{border:none;outline:none;background:rgba(255,255,255,0.05);color:inherit;min-height:80px;}
+body.light-mode .sentence-box{background:rgba(0,0,0,0.05);color:var(--text-light);}
+body.light-mode #inputBox{background:rgba(0,0,0,0.05);}
+
+.editor-mode{font-family:'Courier New',Courier,monospace;background:var(--editor-bg);color:var(--editor-text);}
+
+div button{display:inline-flex;align-items:center;gap:5px;margin:5px;padding:10px 20px;border:none;border-radius:10px;font-weight:500;cursor:pointer;font-family:'DM Sans';transition:0.3s;}
+#restartBtn{background:#4ade80;color:#111;}#restartBtn:hover{background:#22c55e;}
+#darkBtn{background:#333;color:#fff;}#darkBtn:hover{background:#111;}
+#lightBtn{background:#ddd;color:#111;}#lightBtn:hover{background:#bbb;}
+.lessonBtn{background:#60a5fa;color:#111;} .lessonBtn:hover{background:#3b82f6;}
+
+.typed-word{color:var(--green);}
+.wrong-word{color:var(--red);}
+.current-letter{text-decoration:underline;color:var(--highlight);}
+</style>
+</head>
+<body>
+<div class="game-container">
+  <h1 id="title"><i class="ri-graduation-cap-line"></i> Typing Game - CS & Code</h1>
+
+  <div class="stats">
+    <div class="score"><i class="ri-star-line"></i> Score: <span id="score">0</span></div>
+    <div class="wps"><i class="ri-flashlight-line"></i> WPS: <span id="wps">0</span></div>
+  </div>
+
+  <div class="sentence-box" id="sentenceBox">Loading...</div>
+  <textarea id="inputBox" placeholder="Type here..." autocomplete="off"></textarea>
+  <div>
+    <button id="restartBtn"><i class="ri-restart-line"></i> Restart</button>
+    <button id="darkBtn"><i class="ri-moon-line"></i> Dark</button>
+    <button id="lightBtn"><i class="ri-sun-line"></i> Light</button>
+    <button id="lesson2Btn" class="lessonBtn"><i class="ri-arrow-right-line"></i> Lesson Python</button>
+    <button id="lesson3Btn" class="lessonBtn"><i class="ri-arrow-right-line"></i> Lesson HTML</button>
+  </div>
+</div>
+
+<script>
+const lesson1=[
+  "Variables store data used in programming.",
+  "Functions group related code to reuse later.",
+  "Loops repeat tasks multiple times.",
+  "If statements make decisions in code.",
+  "console.log('Hello World');"
+];
+
+const lesson2=[
+  'print("Hello World")  # prints Hello World',
+  'name = "Alice"  # string variable',
+  'age = 25  # number variable',
+  'for i in range(5):\n    print(i)',
+  'if age >= 18:\n    print("Adult")',
+  'def greet(name):\n    print("Hello", name)',
+  'fruits = ["apple","banana","cherry"]\nfor f in fruits:\n    print(f)',
+  'x=10\ny=20\nsum=x+y\nprint(sum)',
+  'def factorial(n):\n    if n<=1: return 1\n    return n*factorial(n-1)',
+  'try:\n    print(10/0)\nexcept ZeroDivisionError:\n    print("Cannot divide by zero")'
+];
+
+const lesson3=[
+  'DOCTYPE html  # defines document type',
+  'html  # root element',
+  'head  # metadata',
+  'title  # page title',
+  'body  # main content',
+  'h1  # heading level 1',
+  'p  # paragraph text',
+  'a href="url"  # link tag',
+  'img src="img.jpg" alt="desc"  # image tag',
+  'ul li  # unordered list item',
+  'ol li  # ordered list item',
+  'div  # container element',
+  'span  # inline text element',
+  'strong  # bold text',
+  'em  # italic text',
+  'br  # line break',
+  'hr  # horizontal line'
+];
+
+let sentences=lesson1, score=0, startTime=null, currentSentence="";
+const sentenceBox=document.getElementById('sentenceBox');
+const scoreEl=document.getElementById('score');
+const wpsEl=document.getElementById('wps');
+const inputBox=document.getElementById('inputBox');
+const restartBtn=document.getElementById('restartBtn');
+const darkBtn=document.getElementById('darkBtn');
+const lightBtn=document.getElementById('lightBtn');
+const lesson2Btn=document.getElementById('lesson2Btn');
+const lesson3Btn=document.getElementById('lesson3Btn');
+const titleEl=document.getElementById('title');
+
+function getRandomSentence(){ return sentences[Math.floor(Math.random()*sentences.length)]; }
+
+function loadSentence(){
+  currentSentence=getRandomSentence();
+  sentenceBox.innerHTML=currentSentence;
+  inputBox.value=''; adjustInputHeight(); inputBox.focus();
+  startTime=new Date();
+}
+
+function adjustInputHeight(){
+  inputBox.style.height='auto';
+  inputBox.style.height=sentenceBox.scrollHeight+'px';
+}
+
+function highlightByLetter(typed){
+  let html='';
+  for(let i=0;i<currentSentence.length;i++){
+    const char=currentSentence[i];
+    const typedChar=typed[i];
+    if(typedChar==null){ html+=char; }
+    else if(typedChar===char){ html+=`<span class="typed-word">${char}</span>`; }
+    else{ html+=`<span class="wrong-word">${char}</span>`; }
+  }
+  return html;
+}
+
+function updateSentenceDisplay(){
+  const typed=inputBox.value;
+  sentenceBox.innerHTML=highlightByLetter(typed);
+  adjustInputHeight();
+  const wordsTyped=typed.trim().split(/\s+/).filter(w=>w!=='').length;
+  const secondsElapsed=Math.max((new Date()-startTime)/1000,1);
+  const wps=(wordsTyped/secondsElapsed).toFixed(2);
+  wpsEl.textContent=wps;
+}
+
+inputBox.addEventListener('input', ()=>{
+  updateSentenceDisplay();
+  if(inputBox.value===currentSentence){ score+=currentSentence.split(/\s+/).length; scoreEl.textContent=score; loadSentence(); }
+});
+
+restartBtn.addEventListener('click', ()=>{ score=0; scoreEl.textContent=score; wpsEl.textContent=0; loadSentence(); });
+darkBtn.addEventListener('click', ()=>document.body.classList.remove('light-mode'));
+lightBtn.addEventListener('click', ()=>document.body.classList.add('light-mode'));
+
+lesson2Btn.addEventListener('click', ()=>{
+  sentences=lesson2; titleEl.innerHTML='<i class="ri-graduation-cap-line"></i> Typing Python';
+  inputBox.classList.add('editor-mode'); score=0; scoreEl.textContent=0; wpsEl.textContent=0; loadSentence();
+});
+
+lesson3Btn.addEventListener('click', ()=>{
+  sentences=lesson3; titleEl.innerHTML='<i class="ri-graduation-cap-line"></i> Typing HTML';
+  inputBox.classList.remove('editor-mode'); score=0; scoreEl.textContent=0; wpsEl.textContent=0; loadSentence();
+});
+
+// Load first sentence
+loadSentence();
+</script>
+</body>
+</html>
