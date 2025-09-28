@@ -110,6 +110,8 @@ a {
     flex-direction: column;
     justify-content: space-between;
     transition: left .4s;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(11px);
   }
 
   .nav__item {
