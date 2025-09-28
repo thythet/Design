@@ -209,6 +209,7 @@ a {
 
 .nav__social {
   column-gap: 1rem;
+  margin-left: 0px;
 }
 
 .nav__social-link {
