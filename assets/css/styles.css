@@ -145,6 +145,7 @@ a {
 .nav__list {
   flex-direction: column;
   row-gap: 3rem;
+  align-items: center;
 }
 
 .nav__link {
