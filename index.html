@@ -333,8 +333,208 @@
 </html>
 
    </body>
+<!-- Popup-start -->
+<!-- Remix Icon -->
+<link href="https://cdn.jsdelivr.net/npm/remixicon/fonts/remixicon.css" rel="stylesheet">
+
+<style>
+body{margin:0;padding:0;font-family:'DM Sans',sans-serif;background:#f0f0f0;overflow:hidden;}
+
+/* Toggle Button with inline password */
+#toggleWrapper{
+  position:fixed;bottom:40px;right:40px;display:flex;align-items:center;gap:5px;z-index:10000;
+}
+#toggleBtn{
+  width:30px;height:30px;border-radius:50%;
+  border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);
+  backdrop-filter:blur(8px) saturate(120%);color:white;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:grab;
+  box-shadow:0 8px 15px rgba(0,0,0,0.2);user-select:none;transition:all 0.3s ease;position:fixed;
+}
+#toggleBtn:active{cursor:grabbing;}
+#pwInput{display:none;background:rgba(255,255,255,0.06);backdrop-filter:blur(8px) saturate(120%);
+  border:none;color:white;padding:4px 8px;border-radius:8px;outline:none;width:100px;}
+#pwSubmit{display:none;background:transparent;border:none;color:white;cursor:pointer;font-size:16px;}
+
+/* Glass Note */
+.glass-wrap{
+  position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
+  width:420px; height:280px; min-width:180px; min-height:120px;
+  border-radius:24px; padding:8px; box-sizing:border-box; background:transparent;
+  cursor:default; user-select:none; transition:opacity 0.3s ease,width 0.3s ease,height 0.3s ease;
+  z-index:1000; display:none;
+}
+.glass{
+  width:100%; height:100%; border-radius:16px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  border:1px solid rgba(255,255,255,0.15);box-shadow:0 10px 30px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.03);
+  backdrop-filter: blur(8px) saturate(120%);display:flex; flex-direction:column; overflow:hidden; color:rgba(255,255,255,0.3);
+  font-family:'Cascadia Code', monospace; font-style:italic; font-weight:400;
+}
+.glass-header{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:grab}
+.glass-header:active{cursor:grabbing}
+.dots{display:flex;gap:6px}
+.dot{width:10px;height:10px;border-radius:50%;background:linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0.4));opacity:0.85}
+.title{font-weight:600;font-size:14px;opacity:0.95}
+.spacer{flex:1}
+.hide-btn{border:none;background:transparent;color:rgba(255,255,255,0.5);cursor:pointer;font-size:16px}
+
+/* Note content scroll hidden */
+.glass-content{
+  padding:12px 16px;flex:1;overflow:auto;font-size:13px;line-height:1.45;outline:none;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.glass-content::-webkit-scrollbar{width:0;height:0;}
+
+/* Resize handle */
+.resize-handle{
+  position:absolute;right:8px;bottom:8px;width:16px;height:16px;cursor:nwse-resize;
+  border-radius:4px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
+}
+</style>
+
+<div id="toggleWrapper">
+  <button id="toggleBtn"><i class="ri-keynote-line"></i></button>
+  <input id="pwInput" type="password" placeholder="Password" aria-label="password">
+  <button id="pwSubmit"><i class="ri-arrow-right-line"></i></button>
+</div>
+
+<div class="glass-wrap" id="glassWrap">
+  <div class="glass" id="glass">
+    <div class="glass-header" id="dragHandle">
+      <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      <div class="title">Note</div>
+      <div class="spacer"></div>
+      <button class="hide-btn" id="hideBtn"><i class="ri-keynote-fill"></i></button>
+    </div>
+    <div class="glass-content" id="glassContent" contenteditable="true">
+      Type your note here...
+    </div>
+    <div class="resize-handle" id="resizeHandle"></div>
+  </div>
+</div>
+
+<script>
+(async function(){
+  // ---------- Config ----------
+  const STORED = {
+    saltB64: 'j9Kaq74SNFZ4kKvN7wEjRQ==',
+    iterations: 200000,
+    derivedKeyB64: 'YGIwz+2q4/ScPwbNoHlHsVXzymRUyNWmoepVOnWGZvs='
+  };
+  const STORAGE_KEY='glass_note_48h';
+  const STORAGE_AUTH_KEY='glass_note_auth_1h';
+  const AUTH_EXPIRY=60*60*1000;
+  const NOTE_EXPIRY=48*60*60*1000;
+
+  // ---------- Elements ----------
+  const toggleBtn = document.getElementById('toggleBtn');
+  const toggleIcon = toggleBtn.querySelector('i');
+  const pwInput = document.getElementById('pwInput');
+  const pwSubmit = document.getElementById('pwSubmit');
+  const wrap = document.getElementById('glassWrap');
+  const hideBtn = document.getElementById('hideBtn');
+  const content = document.getElementById('glassContent');
+  const dragHandle = document.getElementById('dragHandle');
+  const resizeHandle = document.getElementById('resizeHandle');
+
+  // ---------- Load note ----------
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const obj=JSON.parse(raw);
+      if(obj.ts && (obj.ts + NOTE_EXPIRY) < Date.now()){ localStorage.removeItem(STORAGE_KEY); content.innerText=''; }
+      else if(obj.text) content.innerText = obj.text;
+    }
+  }catch(e){}
+
+  // ---------- Load auth ----------
+  let authorized=false, authTime=0;
+  try{
+    const a=JSON.parse(localStorage.getItem(STORAGE_AUTH_KEY));
+    if(a && a.ts && (Date.now() - a.ts)<AUTH_EXPIRY){ authorized=true; authTime=a.ts; }
+  }catch(e){}
+
+  // ---------- Auto-save note ----------
+  setInterval(()=>{ localStorage.setItem(STORAGE_KEY, JSON.stringify({text: content.innerText, ts: Date.now()})); }, 3000);
+
+  // ---------- PBKDF2 ----------
+  function b64ToArrayBuffer(b64){ return Uint8Array.from(atob(b64), c=>c.charCodeAt(0)); }
+  async function deriveKeyFromPassword(passwordStr){
+    const enc=new TextEncoder();
+    const passKey = await crypto.subtle.importKey('raw', enc.encode(passwordStr), {name:'PBKDF2'}, false, ['deriveBits']);
+    const saltArr = b64ToArrayBuffer(STORED.saltB64);
+    const derivedBits = await crypto.subtle.deriveBits(
+      {name:'PBKDF2', salt:saltArr, iterations:STORED.iterations, hash:'SHA-256'}, passKey, 256
+    );
+    return new Uint8Array(derivedBits);
+  }
+  function equalsUint8(a,b){ if(a.length!==b.length) return false; let diff=0; for(let i=0;i<a.length;i++) diff|=a[i]^b[i]; return diff===0; }
+
+  // ---------- Toggle button ----------
+  toggleBtn.addEventListener('click', async ()=>{
+    const now = Date.now();
+    if(!authorized || (now - authTime) > AUTH_EXPIRY){
+      pwInput.style.display='inline-block';
+      pwSubmit.style.display='inline-block';
+      pwInput.focus();
+      return;
+    }
+    if(wrap.style.display==='block'){ wrap.style.display='none'; toggleIcon.className='ri-keynote-line'; }
+    else { wrap.style.display='block'; toggleIcon.className='ri-keynote-fill'; }
+  });
+
+  pwInput.addEventListener('keydown', async e=>{ if(e.key==='Enter'){ e.preventDefault(); pwSubmit.click(); } });
+
+  pwSubmit.addEventListener('click', async ()=>{
+    const pw = pwInput.value||'';
+    if(!pw){ pwInput.value=''; return; }
+    try{
+      const derived = await deriveKeyFromPassword(pw);
+      const stored = b64ToArrayBuffer(STORED.derivedKeyB64);
+      if(equalsUint8(derived, stored)){
+        authorized=true; authTime=Date.now();
+        localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify({ts:authTime}));
+        pwInput.style.display='none'; pwSubmit.style.display='none'; pwInput.value='';
+        wrap.style.display='block'; toggleIcon.className='ri-keynote-fill';
+      } else { alert('Wrong password'); pwInput.value=''; }
+    }catch(err){ console.error(err); alert('Error verifying password'); pwInput.value=''; }
+  });
+
+  hideBtn.addEventListener('click', ()=>{ wrap.style.display='none'; toggleIcon.className='ri-keynote-line'; });
+
+  // ---------- Drag Note ----------
+  let dragging=false, offsetX=0, offsetY=0;
+  dragHandle.addEventListener('mousedown', e=>{
+    dragging=true; offsetX = e.clientX - wrap.offsetLeft; offsetY = e.clientY - wrap.offsetTop; e.preventDefault();
+  });
+  document.addEventListener('mousemove', e=>{ if(dragging){ wrap.style.left=(e.clientX-offsetX)+'px'; wrap.style.top=(e.clientY-offsetY)+'px'; wrap.style.transform=''; } });
+  document.addEventListener('mouseup', ()=>{ dragging=false; });
+
+  // ---------- Drag Toggle Button ----------
+  let btnDragging=false, btnOffsetX=0, btnOffsetY=0;
+  toggleBtn.addEventListener('mousedown', e=>{ btnDragging=true; btnOffsetX=e.clientX-toggleBtn.offsetLeft; btnOffsetY=e.clientY-toggleBtn.offsetTop; e.preventDefault(); });
+  document.addEventListener('mousemove', e=>{ if(btnDragging){ toggleBtn.style.left=(e.clientX-btnOffsetX)+'px'; toggleBtn.style.top=(e.clientY-btnOffsetY)+'px'; } });
+  document.addEventListener('mouseup', ()=>{ btnDragging=false; });
+
+  // ---------- Resize Note ----------
+  let resizing=false, startWidth=0, startHeight=0, startX=0, startY=0;
+  resizeHandle.addEventListener('mousedown', e=>{
+    resizing=true; startWidth=wrap.offsetWidth; startHeight=wrap.offsetHeight; startX=e.clientX; startY=e.clientY; e.preventDefault();
+  });
+  document.addEventListener('mousemove', e=>{
+    if(resizing){
+      const newW = Math.max(180, startWidth + (e.clientX - startX));
+      const newH = Math.max(120, startHeight + (e.clientY - startY));
+      wrap.style.width=newW+'px'; wrap.style.height=newH+'px';
+    }
+  });
+  document.addEventListener('mouseup', ()=>{ resizing=false; });
+})();
+</script>
+<!-- Popup-end -->
 
 </html>
+
 
 
 
